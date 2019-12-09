@@ -1,10 +1,12 @@
 library(shiny)
 library(shinythemes)
-library(shinyWidgets)
+library(htmlwidgets)
+library(plotly)
 
 fighter_list <- c("Mike" = "1234",
                   "Jack" = "5678",
                   "Frank" = "9012");
+
 
 shinyUI(
   fluidPage(
@@ -22,19 +24,19 @@ shinyUI(
       h4("UFC Pre-match Analysis"),
       fluidRow(
         align = "center",
-        column(4,
+        column(3,
           h4('Fighter 1'),
           selectInput(
-            "fighter1", "Fighter Name:",
+            "fighter1", "",
             fighter_list
             # selected=tableOutput("data")
           )
         ),
-        column(4),
-        column(4,
+        column(6),
+        column(3,
           h4('Fighter 2'),
           selectInput(
-            "fighter2", "Fighter Name:",
+            "fighter2", "",
             fighter_list
             # selected=tableOutput("data")
           )
@@ -42,28 +44,39 @@ shinyUI(
       ),
       fluidRow(
         align = "center",
-        column(4, 
-          #tags$head(tags$style(HTML("font-size: 20px; padding: 0px 0px; margin-top:-2em; background-color: rgba(255, 255, 255, 0.5)"))),
+        column(3, 
+          style = "font-size: 16px; padding: 0px 0px; margin-top:1em; background-color: rgba(255, 255, 255, 0.25); border-radius: 5px;",
           h4('Fighter 1'),
           fluidRow(
-            column(8,
-              tags$img(src = "fighter/No-Photo-00001", width = "100%")
-            ),
             column(4,
+              tags$img(src = "fighter/No-Photo-00001", width = "200px", style="max-width: 100%")
+            ),
+            column(8,
               h5("test")     
             )
           )
         ),
-        column(4, 
-          h4('Head to Head')
+        column(6, 
+          fluidRow(
+            align = "center",
+            style = "font-size: 16px; padding: 16px 16px; margin-top:1em; background-color: rgba(0, 0, 0, 0.5); border-radius: 5px;",
+            h4('Head to Head'),
+            fluidRow(
+              align = "center",
+              column(6,
+                plotlyOutput("headtohead")
+              )
+            )
+          )
         ),
-        column(4, 
+        column(3, 
+          style = "font-size: 16px; padding: 0px 0px; margin-top:1em; background-color: rgba(255, 255, 255, 0.25); border-radius: 5px;",
           h4('Fighter 2'),
           fluidRow(
-            column(4
+            column(8
             ),
-            column(8,
-              tags$img(src = "fighter/No-Photo-00002", width = "100%")
+            column(4,
+              tags$img(src = "fighter/No-Photo-00002", width = "200px", style="max-width: 100%")
             )
           )
         ),
