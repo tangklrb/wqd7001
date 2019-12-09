@@ -1,0 +1,13 @@
+name: WQD7001Group
+title: WQD7001Group
+username:
+account: tangklrb
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1576729
+bundleId: 2651135
+url: https://tangklrb.shinyapps.io/WQD7001Group/
+when: 1575850064.78724
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: fighter
