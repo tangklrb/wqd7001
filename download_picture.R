@@ -36,4 +36,4 @@ find_dimension <- function(photo) {
 }
 
 files <- list.files(path="www/fighter", pattern="*", full.names=F, recursive=FALSE)
-#lapply(files, find_dimension)
+lapply(files, find_dimension)

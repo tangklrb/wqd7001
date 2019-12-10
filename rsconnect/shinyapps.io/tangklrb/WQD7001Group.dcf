@@ -5,9 +5,8 @@ account: tangklrb
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1576729
-bundleId: 2651135
+bundleId: 2656590
 url: https://tangklrb.shinyapps.io/WQD7001Group/
-when: 1575850064.78724
+when: 1576003881.30007
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: fighter
