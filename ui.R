@@ -3,11 +3,9 @@ library(shinythemes)
 library(htmlwidgets)
 library(plotly)
 
-fighter_list <- c(
-  "Mike" = "1234",
-  "Jack" = "5678",
-  "Frank" = "9012"
-)
+#setwd('/home/kitlim/wqd7001/ShinyTest/GroupProject/')
+fighters = read.csv("data/fighter_data.csv", header = T)
+fighter_list <- fighters %>% select(fighter) %>% mutate(value = fighter) %>% as.vector
 
 shinyUI(
   fluidPage(
@@ -20,9 +18,9 @@ shinyUI(
       h3("UFC Pre-match Analysis"),
       fluidRow(
         align = "center",
-        column(3, selectInput("fighter1", "Fighter 1",c(Choose='', fighter_list), selectize=TRUE)),
+        column(3, selectInput("fighter_1", "Fighter 1",c(Choose='', fighter_list), selectize=TRUE)),
         column(6),
-        column(3, selectInput("fighter2", "Fighter 2",c(Choose='', fighter_list), selectize=TRUE)),
+        column(3, selectInput("fighter_2", "Fighter 2",c(Choose='', fighter_list), selectize=TRUE)),
       ),
       fluidRow(
         align = "center",
@@ -31,9 +29,12 @@ shinyUI(
           style = "font-size: 16px; padding: 4px 8px; margin-top:1em; background-color: rgba(255, 255, 255, 0.25); border-radius: 8px;",
           h4('Fighter 1'),
           fixedRow(
-            column(6, tags$img(src = "fighter/No-Photo-00001", width = "200px", style="max-width: 100%")),
             column(6, 
-              tableOutput('particular1')     
+              imageOutput('fighter_picture_1'), 
+              style="width: 200px, max-width: 100%"
+            ),
+            column(6, 
+              tableOutput('fighter_details_1')     
             )
           )
         ),
@@ -50,9 +51,12 @@ shinyUI(
           h4('Fighter 2'),
           fixedRow(
             column(6,
-              tableOutput('particular2')
+              tableOutput('fighter_details_2')
             ),
-            column(6, tags$img(src = "fighter/No-Photo-00002", width = "200px", style="max-width: 100%"))
+            column(6, 
+              imageOutput('fighter_picture_2'), 
+              style="width: 200px, max-width: 100%"
+            )
           )
         ),
       ),

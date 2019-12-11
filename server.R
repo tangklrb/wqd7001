@@ -1,9 +1,96 @@
 library(shiny)
 library(dplyr)
 library(plotly)
+library(stringr)
+
+#setwd('/home/kitlim/wqd7001/ShinyTest/GroupProject/')
+fighters <- read.csv("data/fighter_data.csv", header = T)
+
+write_log <- function(content) {
+  cat(paste0(content, "\n"), file = "log.txt")
+}
+
+pound_to_kg <- function(weight) {
+  return (round(weight*0.45359237, digits=2))
+}
+
+get_in_game_stat <- function(fighter_seq, fighter_name) {
+  
+  if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
+    return(c(0, 0, 0, 0, 0, 0, 0))
+  }
+  
+  # fighter 1: [def] distance, close, [att], close, distance, ground, [def] ground
+  # fighter 2: [att] distance, close, [def], close, distance, ground, [att] ground
+  if(fighter_seq == 1) {
+      fighter_in_game_stat <- fighters %>% 
+      filter(fighter==fighter_name) %>% 
+      select(distance_def, close_def, close_att, distance_att, ground_att, ground_def) %>%
+      mutate(gap_closure = distance_def) %>% t %>% as.vector
+  } else if(fighter_seq == 2) {
+    fighter_in_game_stat <- fighters %>% 
+      filter(fighter==fighter_name) %>% 
+      select(distance_att, close_att, close_def, distance_def, ground_def, ground_att) %>%
+      mutate(gap_closure = distance_att) %>% t %>% as.vector
+  }
+  
+  # for debug purpose
+  #write.csv(fighter_in_game_stat, paste0("data/fighter_data.",fighter_seq,".csv"), row.names = FALSE)
+  #write_log(class(fighter_in_game_stat))
+  
+  return(fighter_in_game_stat)
+}
+
+get_profile <- function(fighter_name) {
+  
+  if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
+    return(
+      data.frame(
+        value=c("-", "-", "-", "-", "-", "-"), 
+        row.names = c("Name", "Age", "Height (cm)", "Weight (kg)", "Reach (cm)", "Stance"))
+    )
+  }
+
+  profile <- fighters %>% 
+    filter(fighter==fighter_name) %>% 
+    mutate(Weight_kgs = pound_to_kg(Weight_lbs)) %>%
+    select(fighter, age, Height_cms, Weight_kgs, Reach_cms, Stance) %>%
+    rename(
+      "Name" = fighter, "Age" = age, 
+      "Height (cm)" = Height_cms, "Weight (kg)" = Weight_kgs, 
+      "Reach (cm)" = Reach_cms
+    ) %>% t
+  
+  return(profile)
+}
+
+get_profile_pic <- function(fighter_seq, fighter_name) {
+  
+  if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
+    return(paste0("fighter/No-Photo-0000", fighter_seq))
+  }
+  
+  profile_pic <- fighters %>% 
+    filter(fighter==fighter_name) %>% 
+    select(url) %>% t
+  
+  if(length(profile_pic) == 0) {
+    return(paste0("fighter/No-Photo-0000", fighter_seq))
+  }
+  else {
+    if(!file.exists(paste0("www/", profile_pic))) {
+      return(paste0("fighter/No-Photo-0000", fighter_seq))
+    } else {
+      return(profile_pic[1,1])  
+    } 
+  }
+}
 
 shinyServer(
   function(input, output) {
+    # fighter_1 <- input$fighter_1
+    # fighter_2 <- input$fighter_2
+    
     output$headtohead <- renderPlotly({
       plot_ly(
         type = 'scatterpolargl',
@@ -14,18 +101,18 @@ shinyServer(
         displaylogo = F
       ) %>%
       add_trace(
-        r = c(0.6, 0.75, 0.5, 0.6, 0.5, 0.35, 0.6),
+        r = get_in_game_stat(1, input$fighter_1),
         fillcolor = "rgba(255, 15, 0, 0.5)",
         line = list(color = 'rgba(230, 13, 0, 0.75)', width = 1),
-        theta = c('Distance\nA Def\nvs\nB Atk', 'Clinch\nA Def vs B Atk', 'Clinch\nB Def vs A Atk', 'Distance\nB Def\nvs\nA Atk','Ground\nB Def vs A Atk', 'Ground\nA Def vs B Atk', 'Distance\nA Def\nvs\nB Atk'),
-        name = 'Player A'
+        theta = c('Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att'),
+        name = input$fighter_1
       ) %>%
       add_trace(
-        r = c(0.45, 0.5, 0.8, 0.65, 0.35, 0.65, 0.45),
+        r = get_in_game_stat(2, input$fighter_2),
         fillcolor = "rgba(0, 15, 255, 0.5)",
         line = list(color = 'rgba(13, 0, 230, 0.75)', width = 1),
-        theta = c('Distance\nA Def\nvs\nB Atk', 'Clinch\nA Def vs B Atk', 'Clinch\nB Def vs A Atk', 'Distance\nB Def\nvs\nA Atk','Ground\nB Def vs A Atk', 'Ground\nA Def vs B Atk', 'Distance\nA Def\nvs\nB Atk'),
-        name = 'Player B'
+        theta = c('Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att'),
+        name = input$fighter_2
       ) %>%
       layout(
         plot_bgcolor = "rgba(0, 0, 0, 1)",
@@ -58,16 +145,25 @@ shinyServer(
       )
     })
     
-    output$particular1 <- renderTable(
-      data.frame(value=c("Mike", "90kg", "180cm", "65cm"), row.names = c("Name", "Weight", "Height", "Reach")),
+    output$fighter_details_1 <- renderTable(
+      get_profile(input$fighter_1),
       rownames = TRUE, 
       colnames = FALSE
     )  
     
-    output$particular2 <- renderTable(
-      data.frame(value=c("Frank", "78kg", "176cm", "61cm"), row.names = c("Name", "Weight", "Height", "Reach")),
+    output$fighter_details_2 <- renderTable(
+      get_profile(input$fighter_2),
       rownames = TRUE, 
       colnames = FALSE
     )
+    
+    output$fighter_picture_1 <- renderImage({
+      list(src = file.path(getwd(), sprintf("www/%s", get_profile_pic(1, input$fighter_1))))
+    }, deleteFile = FALSE)
+    
+    output$fighter_picture_2 <- renderImage({
+      list(src = file.path(getwd(), sprintf("www/%s", get_profile_pic(2, input$fighter_2))))
+    }, deleteFile = FALSE)
+    
   }
 )
