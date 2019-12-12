@@ -11,51 +11,89 @@ shinyUI(
   fluidPage(
     theme = shinytheme("slate"),
     tags$head(
-      tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")
+      tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+      tags$head(tags$style(".container {font-size: 12px; width:100%; padding: 2px; background-color: rgba(255, 255, 255, 0.25); border-radius: 8px;}")),
+      tags$head(tags$style("#fighter_picture_1 img,#fighter_picture_2 img {max-width:98%; width: 200px}"))
     ),
     mainPanel(
       width=12,
-      h3("UFC Pre-match Analysis"),
+      h3("UFC Fight Analysis"),
       fluidRow(
         align = "center",
-        column(3, selectInput("fighter_1", "Fighter 1",c(Choose='', fighter_list), selectize=TRUE)),
-        column(6),
-        column(3, selectInput("fighter_2", "Fighter 2",c(Choose='', fighter_list), selectize=TRUE)),
+        column(3,
+          class="col-xs-5 col-md-3 col-lg-3",
+          selectInput("fighter_1", "Fighter 1",c(Choose='', fighter_list), selectize=TRUE)
+        ),
+        column(6,
+          class="col-xs-2 col-md-6 col-lg-6"
+        ),
+        column(3, 
+          class="col-xs-5 col-md-3 col-lg-3",
+          selectInput("fighter_2", "Fighter 2",c(Choose='', fighter_list), selectize=TRUE)
+        ),
       ),
       fluidRow(
-        align = "center",
-        style = "font-size: 16px; padding: 16px 16px; margin-top:1em; background-color: rgba(0, 0, 0, 0.25); border-radius: 16px;",
+        align="center",
         column(3, 
-          style = "font-size: 16px; padding: 4px 8px; margin-top:1em; background-color: rgba(255, 255, 255, 0.25); border-radius: 8px;",
+          class="col-xs-12 col-md-3 col-lg-3",
           h4('Fighter 1'),
           fixedRow(
-            column(6, 
-              imageOutput('fighter_picture_1'), 
-              style="width: 200px, max-width: 100%"
+            class="container",
+            column(12, 
+              class="col-xs-6 col-md-6",
+              style="padding: 4px",
+              imageOutput('fighter_picture_1', width="100%", height="100%")
             ),
-            column(6, 
-              tableOutput('fighter_details_1')     
+            column(12, 
+              class="col-xs-6 col-md-6",
+              style="padding: 4px",
+              tableOutput('fighter_details_1')
             )
           )
         ),
         column(6, 
-          fixedRow(
-            style = "font-size: 16px; padding: 4px 8px; margin:1em; background-color: rgba(255, 255, 255, 0.25); border-radius: 8px;",
-            align = "center",
-            h4('Head to Head'),
-            plotlyOutput("headtohead", width = "95%", height = "95%")
+          class="col-xs-12 col-md-6 col-lg-6",
+          h4('Head to Head Comparison'),
+          tabsetPanel(
+            type="tab",
+            tabPanel(
+              "Fighter's Stat",
+              fixedRow(
+                column(12, 
+                  h5("Fighter's Statitic")
+                ),
+              )
+            ),
+            tabPanel(
+              "In Game Statistic",
+              fixedRow(
+                column(12, 
+                       class="container",
+                       align = "center",
+                       h5("In Game Statistic"),
+                       plotlyOutput("headtohead", width = "95%", height = "95%")
+                ),
+              )
+            ),
+            tabPanel(
+              "Prediction"
+            )
           )
         ),
         column(3, 
-          style = "font-size: 16px; padding: 4px 8px; margin-top:1em; background-color: rgba(255, 255, 255, 0.25); border-radius: 8px;",
+          class="col-xs-12 col-md-3 col-lg-3",
           h4('Fighter 2'),
           fixedRow(
-            column(6,
-              tableOutput('fighter_details_2')
+            class="container",
+            column(12,
+              class="col-xs-6 col-md-6",
+              style="padding: 4px",
+              tableOutput('fighter_details_2'),
             ),
-            column(6, 
-              imageOutput('fighter_picture_2'), 
-              style="width: 200px, max-width: 100%"
+            column(12, 
+              class="col-xs-6 col-md-6",
+              style="padding: 4px",
+              imageOutput('fighter_picture_2', width="100%", height="100%"), 
             )
           )
         ),

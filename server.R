@@ -147,12 +147,14 @@ shinyServer(
     
     output$fighter_details_1 <- renderTable(
       get_profile(input$fighter_1),
+      width="97%",
       rownames = TRUE, 
       colnames = FALSE
     )  
     
     output$fighter_details_2 <- renderTable(
       get_profile(input$fighter_2),
+      width="97%",
       rownames = TRUE, 
       colnames = FALSE
     )

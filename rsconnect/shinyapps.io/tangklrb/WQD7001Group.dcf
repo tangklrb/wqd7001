@@ -5,8 +5,8 @@ account: tangklrb
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1576729
-bundleId: 2659621
+bundleId: 2662583
 url: https://tangklrb.shinyapps.io/WQD7001Group/
-when: 1576086278.61349
+when: 1576173008.39488
 asMultiple: FALSE
 asStatic: FALSE
