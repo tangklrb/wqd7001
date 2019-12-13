@@ -25,12 +25,12 @@ get_in_game_stat <- function(fighter_seq, fighter_name) {
   if(fighter_seq == 1) {
       fighter_in_game_stat <- fighters %>% 
       filter(fighter==fighter_name) %>% 
-      select(distance_def, close_def, close_att, distance_att, ground_att, ground_def) %>%
+      select(ground_def, distance_def, close_def, close_att, distance_att, ground_att) %>%
       mutate(gap_closure = distance_def) %>% t %>% as.vector
   } else if(fighter_seq == 2) {
     fighter_in_game_stat <- fighters %>% 
       filter(fighter==fighter_name) %>% 
-      select(distance_att, close_att, close_def, distance_def, ground_def, ground_att) %>%
+      select(ground_att, distance_att, close_att, close_def, distance_def, ground_def) %>%
       mutate(gap_closure = distance_att) %>% t %>% as.vector
   }
   
@@ -66,8 +66,10 @@ get_profile <- function(fighter_name) {
 
 get_profile_pic <- function(fighter_seq, fighter_name) {
   
-  if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
-    return(paste0("fighter/No-Photo-0000", fighter_seq))
+  no_picture <- "fighter/No-Photo-0000"
+
+    if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
+    return(no_picture)
   }
   
   profile_pic <- fighters %>% 
@@ -75,11 +77,11 @@ get_profile_pic <- function(fighter_seq, fighter_name) {
     select(url) %>% t
   
   if(length(profile_pic) == 0) {
-    return(paste0("fighter/No-Photo-0000", fighter_seq))
+    return(no_picture)
   }
   else {
     if(!file.exists(paste0("www/", profile_pic))) {
-      return(paste0("fighter/No-Photo-0000", fighter_seq))
+      return(no_picture)
     } else {
       return(profile_pic[1,1])  
     } 
@@ -104,15 +106,15 @@ shinyServer(
         r = get_in_game_stat(1, input$fighter_1),
         fillcolor = "rgba(255, 15, 0, 0.5)",
         line = list(color = 'rgba(230, 13, 0, 0.75)', width = 1),
-        theta = c('Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att'),
-        name = input$fighter_1
+        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
+        name = ifelse(is.na(input$fighter_1) || trimws(input$fighter_1) == "", "Fighter 1", input$fighter_1)
       ) %>%
       add_trace(
         r = get_in_game_stat(2, input$fighter_2),
         fillcolor = "rgba(0, 15, 255, 0.5)",
         line = list(color = 'rgba(13, 0, 230, 0.75)', width = 1),
-        theta = c('Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att'),
-        name = input$fighter_2
+        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
+        name = ifelse(is.na(input$fighter_2) || trimws(input$fighter_2) == "", "Fighter 2", input$fighter_2)
       ) %>%
       layout(
         plot_bgcolor = "rgba(0, 0, 0, 1)",
@@ -120,12 +122,12 @@ shinyServer(
         polar = list(
           angularaxis = list(
             visible = T,
-            layer = 'below traces',
             tickwidth = 1,
             linewidth = 1,
-            tickfont = list(
-              color = "white"
-            )
+            rotation=240,
+            direction='clockwise',
+            layer = 'below traces',
+            tickfont = list(color = "white")
           ),
           radialaxis = list(
             visible = T,
@@ -134,12 +136,10 @@ shinyServer(
           )
         ),
         legend = list(
-          font = list(
-            color = "white"
-          ),
+          x = 0.5,
           orientation = 'h',
           xanchor = "center",
-          x = 0.5
+          font = list(color = "white")
         ),
         margin = list(l = 50, r = 50, b = 8, t = 8, pad = 4)
       )

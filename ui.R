@@ -37,41 +37,60 @@ shinyUI(
         column(3, 
           class="col-xs-12 col-md-3 col-lg-3",
           h4('Fighter 1'),
-          fixedRow(
+          fluidRow(
             class="container",
             column(12, 
-              class="col-xs-6 col-md-6",
+              class="col-xs-6 col-md-12 col-lg-6 col-xl-6",
               style="padding: 4px",
               imageOutput('fighter_picture_1', width="100%", height="100%")
             ),
             column(12, 
-              class="col-xs-6 col-md-6",
+              class="col-xs-6 col-md-12 col-lg-6 col-xl-6",
               style="padding: 4px",
+              h4('Profile'),
               tableOutput('fighter_details_1')
             )
           )
         ),
+        column(3, 
+          class="col-xs-12 col-md-3 col-lg-3 col-xl-3 col-sm-push-6 col-md-push-6 col-lg-push-6",
+          h4('Fighter 2'),
+          fluidRow(
+            class="container",
+            column(12, 
+              class="col-xs-6 col-md-12 col-lg-6 col-xl-6 col-lg-push-6",
+              style="padding: 4px",
+              imageOutput('fighter_picture_2', width="100%", height="100%"), 
+            ),
+            column(12,
+              class="col-xs-6 col-md-12 col-lg-6 col-xl-6 col-lg-pull-6",
+              style="padding: 4px",
+              h4('Profile'),
+              tableOutput('fighter_details_2'),
+            )
+          )
+        ),
         column(6, 
-          class="col-xs-12 col-md-6 col-lg-6",
+          class="col-xs-12 col-md-6 col-lg-6 col-xl-6 col-sm-pull-3 col-md-pull-3 col-lg-pull-3",
           h4('Head to Head Comparison'),
           tabsetPanel(
             type="tab",
             tabPanel(
-              "Fighter's Stat",
+              "General Stat",
               fixedRow(
                 column(12, 
-                  h5("Fighter's Statitic")
+                  h5("General Statistic")
                 ),
               )
             ),
             tabPanel(
-              "In Game Statistic",
+              "In Game Stat",
               fixedRow(
                 column(12, 
-                       class="container",
-                       align = "center",
-                       h5("In Game Statistic"),
-                       plotlyOutput("headtohead", width = "95%", height = "95%")
+                  class="container",
+                  align = "center",
+                  h5("In Game Statistic"),
+                  plotlyOutput("headtohead", width = "95%", height = "95%")
                 ),
               )
             ),
@@ -79,24 +98,7 @@ shinyUI(
               "Prediction"
             )
           )
-        ),
-        column(3, 
-          class="col-xs-12 col-md-3 col-lg-3",
-          h4('Fighter 2'),
-          fixedRow(
-            class="container",
-            column(12,
-              class="col-xs-6 col-md-6",
-              style="padding: 4px",
-              tableOutput('fighter_details_2'),
-            ),
-            column(12, 
-              class="col-xs-6 col-md-6",
-              style="padding: 4px",
-              imageOutput('fighter_picture_2', width="100%", height="100%"), 
-            )
-          )
-        ),
+        )
       ),
     )
   )
