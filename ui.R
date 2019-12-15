@@ -5,7 +5,7 @@ library(plotly)
 
 #setwd('/home/kitlim/wqd7001/ShinyTest/GroupProject/')
 fighters = read.csv("data/fighter_data.csv", header = T)
-fighter_list <- fighters %>% select(fighter) %>% mutate(value = fighter) %>% as.vector
+fighter_list <- fighters %>% arrange(desc(date)) %>% select(fighter) %>% mutate(value = fighter) %>% as.vector
 
 shinyUI(
   fluidPage(
@@ -79,8 +79,26 @@ shinyUI(
               "General Stat",
               fixedRow(
                 column(12, 
-                  h5("General Statistic")
-                ),
+                  class="container",
+                  h5("General Statistic"),
+                  fluidRow(
+                    column(6,
+                      class="col-xs-6 col-md-6 col-lg-6 col-xl-3",
+                      align = "center",
+                      plotlyOutput("general_figure_1", width = "95%", height = "95%")
+                    ),
+                    column(6,
+                      class="col-xs-6 col-md-6 col-lg-6 col-xl-3 col-xl-push-6",
+                      align = "center",
+                      plotlyOutput("general_figure_2", width = "95%", height = "95%")
+                    ) ,
+                    column(12,
+                      class="col-xs-12 col-md-12 col-lg-12 col-xl-6 col-xl-pull-3",
+                      align = "center",
+                      plotlyOutput("general_stat")
+                    )
+                  )
+                )
               )
             ),
             tabPanel(
@@ -89,13 +107,21 @@ shinyUI(
                 column(12, 
                   class="container",
                   align = "center",
-                  h5("In Game Statistic"),
-                  plotlyOutput("headtohead", width = "95%", height = "95%")
-                ),
+                  h5("In Game Statistic (Defence & Attack Rating)"),
+                  plotlyOutput("in_game_stat", width = "50%", height = "95%")
+                )
               )
             ),
             tabPanel(
-              "Prediction"
+              "Prediction",
+              fixedRow(
+                column(12, 
+                  class="container",
+                  align = "center",
+                  h5("Winner Prediction"),
+                  plotlyOutput("prediction_results")
+                )
+              )
             )
           )
         )

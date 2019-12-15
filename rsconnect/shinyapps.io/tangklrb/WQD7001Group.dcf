@@ -5,8 +5,9 @@ account: tangklrb
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1576729
-bundleId: 2665711
+bundleId: 2668470
 url: https://tangklrb.shinyapps.io/WQD7001Group/
-when: 1576258472.02564
+when: 1576373417.65342
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: .RData|data_model2.csv|download_picture.R|explore.R|log.txt|Modeling2.R|Prediction_v1.R|Prediction.R|R_code_v1.R|R_code.R|data/.~lock.preprocessed_data.csv#|data/.~lock.raw_total_fight_data.csv#|Backup - data
