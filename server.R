@@ -3,6 +3,7 @@ library(dplyr)
 library(plotly)
 library(stringr)
 library(caret)
+library(RCurl)
 
 #setwd('/home/kitlim/wqd7001/ShinyTest/GroupProject/')
 fighters <- read.csv("data/fighter_data.csv", header = T)
@@ -20,34 +21,34 @@ get_profile <- function(fighter_name) {
   if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
     return(
       data.frame(
-        value=c("-", "-", "-", "-", "-", "-"), 
-        row.names = c("Name", "Age", "Height (cm)", "Weight (kg)", "Reach (cm)", "Stance"))
+        value=c("-", "-", "-", "-", "-", "-", "-"), 
+        row.names = c("Name", "Age", "Height (cm)", "Weight (kg)", "Reach (cm)", "Stance", "Title Bout"))
     )
   }
-
+  
   profile <- fighters %>% 
     filter(fighter==fighter_name) %>% 
     mutate(
-      years_till_now = as.numeric(difftime(today, as.Date(date), unit="days"))/365,
+      years_till_now = as.numeric(difftime(Sys.Date(), as.Date(date), unit="days"))/365,
       current_age = round(age + years_till_now),
       Weight_kgs = round(pound_to_kg(Weight_lbs), 2),
       Height_cms = round(Height_cms, 2),
       Reach_cms = round(Reach_cms, 2)
     ) %>%
-    select(fighter, current_age, Height_cms, Weight_kgs, Reach_cms, Stance) %>%
+    select(fighter, current_age, Height_cms, Weight_kgs, Reach_cms, Stance, total_title_bouts) %>%
     rename(
       "Name" = fighter, "Age" = current_age, 
       "Height (cm)" = Height_cms, "Weight (kg)" = Weight_kgs, 
-      "Reach (cm)" = Reach_cms
+      "Reach (cm)" = Reach_cms, "Title Bout" = total_title_bouts,
     ) %>% t
   
   return(profile)
 }
 
-get_profile_pic <- function(fighter_seq, fighter_name) {
+get_profile_picture <- function(fighter_name) {
   
-  no_picture <- "fighter/No-Photo-0000"
-
+  no_picture <- "http://www.pedal-up.com/wqd7001/fighter/No-Photo-0000"
+  
   if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
     return(no_picture)
   }
@@ -60,20 +61,21 @@ get_profile_pic <- function(fighter_seq, fighter_name) {
     return(no_picture)
   }
   else {
-    if(!file.exists(paste0("www/", profile_pic))) {
+    image_url <- paste0("http://www.pedal-up.com/wqd7001", profile_pic[1,1])
+    if(!url.exists(image_url)) {
       return(no_picture)
     } else {
-      return(profile_pic[1,1])  
+      return(image_url)  
     } 
   }
 }
 
 plot_failure <- function(message) {
-  return(plotly_empty() %>% 
+  return(plotly_empty(height = 250) %>% 
            config(displayModeBar = FALSE) %>%
            layout(
-             height = 300, 
-             paper_bgcolor = 'rgba(248, 248, 255, 0)', plot_bgcolor = 'rgba(248, 248, 255, 0)',
+             paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
+             margin = list(l = 0, t = 0, r = 0, b = 0, pad = 0),
              margin = list(l = 10, r = 10, t = 10, b = 10)
            ) %>% 
            add_annotations(
@@ -89,12 +91,165 @@ plot_failure <- function(message) {
   )
 }
 
+get_career_summary <- function(fighter_name) {
+  
+  if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
+    return(plot_failure("Fighter not selected"))
+  }
+  
+  career_summary <- fighters %>% 
+    filter(fighter==fighter_name) %>% 
+    select(wins, draw, losses) %>%
+    rename(
+      "Wins" = wins, "Draw" = draw, "Losses" = losses
+    ) %>% t %>% as.data.frame %>% 
+    add_rownames() %>% 
+    rename (
+      "count" = V1
+    )
+  
+  colors <- c('rgb(131,208,112)', 'rgb(248,207,29)', 'rgb(227,99,66)')
+  
+  return(plot_ly(career_summary, labels = ~rowname, values = ~count, type = 'pie', height = 250,
+                 textposition = 'inside', textinfo = 'label+percent', insidetextfont = list(color = '#FFFFFF'), 
+                 marker = list(colors = colors,
+                               line = list(color = '#FFFFFF', width = 1)),
+                 #The 'pull' attribute can also be used to create space between the sectors
+                 showlegend = FALSE) %>%
+           config(displayModeBar = F) %>%
+           layout(xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
+                  margin = list(l = 8, t = 0, r = 8, b = 0, pad = 8))
+  )
+}
+
+get_streak_detail <- function(fighter_name) {
+  
+  if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
+    empty_matrix = matrix("", nrow = 2, ncol = 1)
+    rownames(empty_matrix) <- c("Current Streak", "Longest Wins")
+    return(empty_matrix)
+  }
+  
+  streak_detail <- fighters %>% 
+    filter(fighter==fighter_name) %>% 
+    mutate(
+      current_streak = ifelse(current_lose_streak>0, paste0(current_lose_streak, " loses"), paste0(current_win_streak, " wins"))
+    ) %>% 
+    select(current_streak, longest_win_streak) %>%
+    rename(
+      "Current_streak" = current_streak, "Longest Win Streak" = longest_win_streak
+    ) %>% t 
+  
+  return(streak_detail)
+}
+
+get_general_stat <- function(fighter_name_1, fighter_name_2) {
+  
+  if(is.na(fighter_name_1) || trimws(fighter_name_1) == "" || is.na(fighter_name_2) || trimws(fighter_name_2) == "" ) {
+    return(plot_failure("Please Select Fighter 1 and Fighter 2"))
+  } else if (fighter_name_1 == fighter_name_2) {
+    return(plot_failure("Please Select a different fighter"))
+  }
+  
+  fighter_winning_stat_1 <- fighters %>%
+    filter(fighter==fighter_name_1) %>%
+    mutate(
+      win_by_KO = win_by_KO.TKO + win_by_TKO_Doctor_Stoppage,
+      win_by_Decision = win_by_Decision_Majority + win_by_Decision_Split + win_by_Decision_Unanimous,
+      win_by_SUB = win_by_Submission
+    ) %>%
+    select(win_by_Decision, win_by_KO, win_by_SUB) %>%
+    t %>% as.vector
+  
+  fighter_winning_stat_2 <- fighters %>%
+    filter(fighter==fighter_name_2) %>%
+    mutate(
+      win_by_KO = win_by_KO.TKO + win_by_TKO_Doctor_Stoppage,
+      win_by_Decision = win_by_Decision_Majority + win_by_Decision_Split + win_by_Decision_Unanimous,
+      win_by_SUB = win_by_Submission
+    ) %>%
+    select(win_by_Decision, win_by_KO, win_by_SUB) %>%
+    t %>% as.vector
+  
+  winning_type <- c("By KO", "By Decision", "By Submission")
+  data <- data.frame(winning_type, fighter_winning_stat_1, fighter_winning_stat_2)
+  
+  return(
+    plot_ly(data, x = ~fighter_winning_stat_2, y = ~winning_type, height = 250,
+            type = 'bar', orientation = 'h', name = 'Fighter 2',
+            marker = list(color = 'rgba(66, 165, 245, 0.8)',
+                          line = list(color = 'rgba(0, 0, 0, 5)', width = 1))) %>%
+      add_trace(x = ~fighter_winning_stat_1, name = 'Fighter 1',
+                marker = list(color = 'rgba(239, 83, 80, 0.8)',
+                              line = list(color = 'rgba(0, 0, 0, 5)', width = 1))) %>%
+      config(displayModeBar = F) %>%
+      add_annotations(xref = 'x', yref = 'y', x = 'paper' , y = ~winning_type,
+                      xanchor = 'right',
+                      text = ~winning_type,
+                      font = list(family = 'sans-serif', size = 10,
+                                  color = 'rgb(255, 255, 255)'),
+                      showarrow = FALSE, align = 'right') %>%
+      add_annotations(xref = 'x', yref = 'y',
+                      x = ~fighter_winning_stat_2, y = ~winning_type,
+                      text = ~fighter_winning_stat_2,
+                      xanchor = 'left',
+                      yanchor='top',
+                      font = list(family = 'sans-serif', size = 10,
+                                  color = 'rgb(248, 248, 255)'),
+                      showarrow = FALSE) %>%
+      add_annotations(xref = 'x', yref = 'y',
+                      x = ~fighter_winning_stat_1, y = ~winning_type,
+                      text = ~fighter_winning_stat_1,
+                      xanchor = 'left',
+                      yanchor='bottom',
+                      font = list(family = 'sans-serif', size = 10,
+                                  color = 'rgb(248, 248, 255)'),
+                      showarrow = FALSE) %>%
+      layout(
+        dragmode = FALSE,
+        xaxis = list(
+          title = "",
+          showgrid = FALSE,
+          showline = FALSE,
+          showticklabels = FALSE,
+          zeroline = TRUE,
+          domain = c(0.15, 1)),
+        legend = list(
+          font = list(
+            family = "sans-serif",
+            size = 10,
+            color = 'rgba(255, 255, 255, 0.75'),
+          bgcolor = 'rgba(0, 0, 0, 0.5)',
+          bordercolor = 'rgba(0, 0, 0, 0.625)',
+          borderwidth = 1),
+        barmode = 'group',
+        paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
+        margin = list(l = 0, t = 0, r = 0, b = 0, pad = 0),
+        showlegend = TRUE
+      )
+  )
+}
+
 plot_figure <- function(data) {
+  
+  image_file <- "www/figure.png"
+  txt <- RCurl::base64Encode(readBin(image_file, "raw", file.info(image_file)[1, "size"]), "txt")
+  
   p <- plot_ly(
     data, x = ~x, y = ~y, type = 'scatter', mode = 'markers', width = 150, height = 225, hoverinfo = "none", 
     marker = list(size = ~attack_count, opacity = ~attack_opacity, color = ~attack_color, line = list(color = 'rgba(225, 225, 225, 0)', width = 0)) 
   ) %>%
     config(displayModeBar = F) %>%
+    add_annotations(x = ~attack_note_x,
+                    y = ~attack_note_y,
+                    text = ~attack_note,
+                    xref = "paper",
+                    yref = "y",
+                    font = list(family = 'Arial', size = 10,
+                                color = 'rgb(0, 0, 0)'),
+                    showarrow = FALSE) %>%
     layout(
       xaxis = list(
         title = "",
@@ -120,62 +275,127 @@ plot_figure <- function(data) {
           sizex = 1,
           sizey = 3,
           sizing = "stretch",
-          opacity = 0.4,
+          opacity = 0.25,
           layer = "below"
         )
       ),
       margin = list(l = 0, t = 0, r = 0, b = 0, pad = 0),
-      paper_bgcolor = 'rgba(248, 248, 255, 0)', plot_bgcolor = 'rgba(248, 248, 255, 0)'
+      paper_bgcolor = 'rgba(248, 248, 248, 0.5)', plot_bgcolor = 'rgba(248, 248, 248, 0.5)'
     )
   
   return(p)
 }
 
-get_general_stat <- function(fighter_name_1, fighter_name_2) {
-  
-  if(is.na(fighter_name_1) || trimws(fighter_name_1) == "" || is.na(fighter_name_2) || trimws(fighter_name_2) == "" ) {
-    return(plot_failure("Please Select Fighter 1 and Fighter 2"))
-  } else if (fighter_name_1 == fighter_name_2) {
-    return(plot_failure("Please Select a different fighter"))
-  }
-  
-  # fighter_general_stat_1 <- fighters %>% 
-  #   filter(fighter==fighter_name_1) %>% 
-  #   select(avg_BODY_att, avg_BODY_landed, avg_HEAD_att, avg_HEAD_landed, avg_LEG_att, avg_LEG_landed) %>%
-  #   t %>% as.vector
-  # 
-  # fighter_general_stat_2 <- fighters %>% 
-  #   filter(fighter==fighter_name_1) %>% 
-  #   select(avg_BODY_att, avg_BODY_landed, avg_HEAD_att, avg_HEAD_landed, avg_LEG_att, avg_LEG_landed) %>%
-  #   t %>% as.vector
-  # 
-  return(
-    plot_failure("Work in progress")
-  )
-}
-
-get_figure <- function(fighter_name) {
+get_attack_area <- function(fighter_seq, fighter_name) {
   
   x <- c(1.5, 1.5, 1.5, 1.5, 1.6, 1.6)
   y <- c(2.7, 2.7, 2, 2, 1.2, 1.2)
-  attack_color <- c('rgb(250,190,192)', 'rgb(113,0,25)', 'rgb(250,190,192)', 'rgb(113,0,25)', 'rgb(250,190,192)', 'rgb(113,0,25)')
-  attack_opacity <- c(0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
+  attack_note_x <- ifelse(fighter_seq==1, c(1, 1, 1), c(0, 0, 0))
+  attack_note_y <- c(2.7, 2, 1.2)
+  attack_color <- c('rgb(251,141,160)', 'rgb(251,69,112)', 'rgb(251,141,160)', 'rgb(251,69,112)', 'rgb(251,141,160)', 'rgb(251,69,112)')
+  attack_opacity <- c(0.35, 0.5, 0.35, 0.5, 0.35, 0.5)
   
   if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
+    attack_note = c("", "", "", "", "", "")
     attack_count =c(0,0,0,0,0,0)
-    fighter_data <- data.frame(x, y, attack_count, attack_color, attack_opacity)
+    fighter_data <- data.frame(x, y, attack_count, attack_color, attack_opacity, attack_note, attack_note_x, attack_note_y)
     return(plot_figure(fighter_data))
   }
   
   attack_count <- fighters %>% 
     filter(fighter==fighter_name) %>% 
-    select(avg_BODY_att, avg_BODY_landed, avg_HEAD_att, avg_HEAD_landed, avg_LEG_att, avg_LEG_landed) %>% t %>% as.vector
+    select(avg_HEAD_att, avg_HEAD_landed, avg_BODY_att, avg_BODY_landed, avg_LEG_att, avg_LEG_landed) %>% t %>% as.vector
   
-  fighter_data <- data.frame(x, y, attack_count, attack_color, attack_opacity)
+  attack_note <- fighters %>% 
+    filter(fighter==fighter_name) %>% 
+    mutate(
+      head = paste0("(H) ", round(head_att_pct*100, 0), "% (", round(head_att_acc*100, 0), "%)"),
+      body = paste0("(B) ", round(body_att_pct*100, 0), "% (", round(body_att_acc*100, 0), "%)"),
+      leg = paste0("(L) ", round(leg_att_pct*100, 0), "% (", round(leg_att_acc*100, 0), "%)")
+    ) %>%
+    select(head, body, leg) %>% t %>% as.vector
+  
+  fighter_data <- data.frame(x, y, attack_count, attack_color, attack_opacity, attack_note, attack_note_x, attack_note_y)
   
   return(
     plot_figure(fighter_data)
   )
+}
+
+get_attack_summary <- function(fighter_name_1, fighter_name_2) {
+  
+  if(is.na(fighter_name_1) || trimws(fighter_name_1) == "" || is.na(fighter_name_2) || trimws(fighter_name_2) == "" ) {
+    return(matrix(c("Please Select Fighter 1 and Fighter 2"), dimnames = list(c("Message:"), c("Error"))))
+  } else if (fighter_name_1 == fighter_name_2) {
+    return(matrix(c("Please Select a different fighter"), dimnames = list(c("Message:"), c("Error"))))
+  }
+  
+  fighter_general_stat_1 <- fighters %>%
+    filter(fighter==fighter_name_1) %>%
+    mutate(
+      avg_SIG_STR_landed = round(avg_SIG_STR_landed, 2),
+      avg_SIG_STR_summary = paste0(avg_SIG_STR_landed, "/", avg_SIG_STR_att),
+      avg_SIG_STR_pct = round(avg_SIG_STR_pct * 100, 2),
+      avg_TD_landed = round(avg_TD_landed, 2),
+      avg_TD_summary = paste0(avg_TD_landed, "/", avg_TD_att),
+      avg_TD_pct = round(avg_TD_pct * 100, 2),
+      avg_TOTAL_STR_landed = round(avg_TOTAL_STR_landed, 2),
+      avg_TOTAL_STR_summary = paste0(avg_TOTAL_STR_landed, "/", avg_TOTAL_STR_att),
+      avg_TOTAL_STR_pct = round(avg_TOTAL_STR_landed/avg_TOTAL_STR_att * 100, 2),
+      avg_KD = round(avg_KD, 2),
+      avg_PASS = round(avg_PASS, 2),
+      avg_REV = round(avg_REV, 2),
+      avg_SUB_ATT = round(avg_SUB_ATT, 2)
+    ) %>%
+    select(
+      avg_SIG_STR_landed, avg_TD_landed, avg_TOTAL_STR_landed,
+      # avg_SIG_STR_summary, avg_TD_summary, avg_TOTAL_STR_summary, 
+      # avg_SIG_STR_pct, avg_TD_pct, avg_TOTAL_STR_pct, 
+      avg_KD, avg_PASS, avg_REV, avg_SUB_ATT
+    ) %>%
+    #select(avg_SIG_STR_pct, avg_TD_pct, avg_TOTAL_STR_pct, avg_PASS, avg_REV, avg_SUB_ATT) %>%
+    rename(
+      "Avg Significant Strike" = avg_SIG_STR_landed, "Avg Total Strike" = avg_TOTAL_STR_landed, "Avg Take Down" = avg_TD_landed, 
+      # "Significant Strike" = avg_SIG_STR_summary, "Total Strike" = avg_TOTAL_STR_summary, "Take Down" = avg_TD_summary, 
+      # "Significant Strike %" = avg_SIG_STR_pct, "Total Strike %" = avg_TOTAL_STR_pct, "Take Down %" = avg_TD_pct, 
+      "Avg Knock Down" = avg_KD, "Avg Pass" = avg_PASS, "Avg Reversal" = avg_REV, "Avg Submission Attemp" = avg_SUB_ATT
+    ) %>% t
+  
+  fighter_general_stat_2 <- fighters %>%
+    filter(fighter==fighter_name_2) %>%
+    mutate(
+      avg_SIG_STR_landed = round(avg_SIG_STR_landed, 2),
+      avg_SIG_STR_summary = paste0(avg_SIG_STR_landed, "/", avg_SIG_STR_att),
+      avg_SIG_STR_pct = round(avg_SIG_STR_pct * 100, 2),
+      avg_TD_landed = round(avg_TD_landed, 2),
+      avg_TD_summary = paste0(avg_TD_landed, "/", avg_TD_att),
+      avg_TD_pct = round(avg_TD_pct * 100, 2),
+      avg_TOTAL_STR_landed = round(avg_TOTAL_STR_landed, 2),
+      avg_TOTAL_STR_summary = paste0(avg_TOTAL_STR_landed, "/", avg_TOTAL_STR_att),
+      avg_TOTAL_STR_pct = round(avg_TOTAL_STR_landed/avg_TOTAL_STR_att * 100, 2),
+      avg_KD = round(avg_KD, 2),
+      avg_PASS = round(avg_PASS, 2),
+      avg_REV = round(avg_REV, 2),
+      avg_SUB_ATT = round(avg_SUB_ATT, 2)
+    ) %>%
+    select(
+      avg_SIG_STR_landed, avg_TD_landed, avg_TOTAL_STR_landed,
+      # avg_SIG_STR_summary, avg_TD_summary, avg_TOTAL_STR_summary, 
+      # avg_SIG_STR_pct, avg_TD_pct, avg_TOTAL_STR_pct, 
+      avg_KD, avg_PASS, avg_REV, avg_SUB_ATT
+    ) %>%
+    #select(avg_SIG_STR_pct, avg_TD_pct, avg_TOTAL_STR_pct, avg_PASS, avg_REV, avg_SUB_ATT) %>%
+    rename(
+      "Avg Significant Strike" = avg_SIG_STR_landed, "Avg Total Strike" = avg_TOTAL_STR_landed, "Avg Take Down" = avg_TD_landed, 
+      # "Significant Strike" = avg_SIG_STR_summary, "Total Strike" = avg_TOTAL_STR_summary, "Take Down" = avg_TD_summary, 
+      # "Significant Strike %" = avg_SIG_STR_pct, "Total Strike %" = avg_TOTAL_STR_pct, "Take Down %" = avg_TD_pct, 
+      "Avg Knock Down" = avg_KD, "Avg Pass" = avg_PASS, "Avg Reversal" = avg_REV, "Avg Submission Attemp" = avg_SUB_ATT
+    ) %>% t
+  
+  fighter_general_stat <- cbind(fighter_general_stat_1, fighter_general_stat_2)
+  colnames(fighter_general_stat) <- c("Fighter 1", "Fighter 2")
+  
+  return(fighter_general_stat)
 }
 
 get_in_game_stat <- function(fighter_seq, fighter_name) {
@@ -198,10 +418,6 @@ get_in_game_stat <- function(fighter_seq, fighter_name) {
       mutate(gap_closure = ground_att) %>% t %>% as.vector
   }
   
-  # for debug purpose
-  #write.csv(fighter_in_game_stat, paste0("data/fighter_data.",fighter_seq,".csv"), row.names = FALSE)
-  #write_log(class(fighter_in_game_stat))
-  
   return(fighter_in_game_stat)
 }
 
@@ -214,72 +430,30 @@ prediction <- function(fighter_name_1, fighter_name_2) {
   }
   
   #Load Model
-  load("fighter_model.RData")
+  load("Model2.RData")
+  load("Model_Compare.RData")
   
   #Red Corner
   red <- fighters %>% filter(fighter==fighter_name_1)
-
+  
   #Blue Corner
   blue <- fighters %>% filter(fighter==fighter_name_2)
-
+  
+  
   #Data needed for prediction
   fighter_choosen_data=data.frame(
-    B_longest_win_streak        = blue$longest_win_streak,     
-    B_total_rounds_fought       = blue$total_rounds_fought,  
-    B_total_time_fought.seconds.= blue$total_time_fought.seconds.,
-    B_total_title_bouts         = blue$total_title_bouts, 
-    B_win_by_Decision_Majority  = blue$win_by_Decision_Majority,
-    B_win_by_Decision_Split     = blue$win_by_Decision_Split,    
-    B_win_by_Decision_Unanimous = blue$win_by_Decision_Unanimous,
-    B_win_by_KO.TKO             = blue$win_by_KO.TKO,       
-    B_win_by_Submission         = blue$win_by_Submission,        
-    B_win_by_TKO_Doctor_Stoppage= blue$win_by_TKO_Doctor_Stoppage,
-    B_Height_cms                = blue$Height_cms,              
-    B_Reach_cms                 = blue$Reach_cms,                
-    R_longest_win_streak        = red$longest_win_streak,        
-    R_total_rounds_fought       = red$total_rounds_fought,       
-    R_total_time_fought.seconds.= red$total_time_fought.seconds.,
-    R_total_title_bouts         = red$total_title_bouts,       
-    R_win_by_Decision_Majority  = red$win_by_Decision_Majority,
-    R_win_by_Decision_Split     = red$win_by_Decision_Split,    
-    R_win_by_Decision_Unanimous = red$win_by_Decision_Unanimous,
-    R_win_by_KO.TKO             = red$win_by_KO.TKO,     
-    R_win_by_Submission         = red$win_by_Submission,         
-    R_win_by_TKO_Doctor_Stoppage= red$win_by_TKO_Doctor_Stoppage,
-    R_Height_cms                = red$Height_cms,            
-    R_Reach_cms                 = red$Reach_cms,              
-    B_age                       = blue$age,         
-    R_age                       = red$age,         
-    B_Stance                    = case_when(blue$Stance=="Open Stance"~ 1 ,
-                                            blue$Stance=="Orthodox"~ 2 ,
-                                            blue$Stance=="Sideways"~ 3 ,
-                                            blue$Stance=="Southpaw"~ 4 ,
-                                            blue$Stance=="Switch"~ 5,
-                                            TRUE~0),
-    R_Stance                    = case_when(red$Stance=="Open Stance"~ 1 ,
-                                            red$Stance=="Orthodox"~ 2 ,
-                                            red$Stance=="Sideways"~ 3 ,
-                                            red$Stance=="Southpaw"~ 4 ,
-                                            red$Stance=="Switch"~ 5,
-                                            TRUE~0),          
-    diff_distance_att           =blue$DistanceAtt - red$DistanceAtt,
-    diff_close_att              =blue$CloseAtt - red$CloseAtt,
-    diff_ground_att             =blue$GroundAtt - red$GroundAtt,
-    diff_distance_def           =blue$DistanceDef - red$DistanceDef,
-    diff_close_def              =blue$CloseDef - red$CloseDef,
-    diff_ground_def             =blue$GroundDef- red$GroundDef,
-    R_total_normal_att          =red$total_normal_att,
-    B_total_normal_att          =blue$total_normal_att,
-    diff_head_att_pct           =blue$HeadAttactPct - red$HeadAttactPct,
-    diff_head_att               =blue$HeadAttactAccuracy - red$HeadAttactAccuracy,
-    diff_body_att_pct           =blue$BodyAttactPct - red$BodyAttactPct,
-    diff_body_att               =blue$BodyAttactAccuracy-red$BodyAttactAccuracy,
-    diff_leg_att_pct            =blue$LegAttactPct - red$LegAttactPct,
-    diff_leg_att                =blue$LegAttactAccuracy - red$LegAttactAccuracy,
-    B_current_streak            =ifelse(blue$current_lose_streak==0,blue$current_win_streak,-blue$current_lose_streak),       
-    R_current_streak            =ifelse(red$current_lose_streak==0,red$current_win_streak,-red$current_lose_streak),                 
-    B_win_pct                   =(blue$draw/2+blue$wins)/(blue$draw+blue$wins+blue$losses),          
-    R_win_pct                   =(red$draw/2+red$wins)/(red$draw+red$wins+red$losses),                       
+    diff_distance_att           =blue$distance_att - red$distance_att,
+    diff_close_att              =blue$close_att - red$close_att,
+    diff_ground_att             =blue$ground_att - red$ground_att,
+    diff_distance_def           =blue$distance_def - red$distance_def,
+    diff_close_def              =blue$close_def - red$close_def,
+    diff_ground_def             =blue$ground_def- red$ground_def,
+    diff_head_att_pct           =blue$head_att_pct - red$head_att_pct,
+    diff_head_att               =blue$head_att_acc - red$head_att_acc,
+    diff_body_att_pct           =blue$body_att_pct - red$body_att_pct,
+    diff_body_att               =blue$body_att_acc-red$body_att_acc,
+    diff_leg_att_pct            =blue$leg_att_pct - red$leg_att_pct,
+    diff_leg_att                =blue$leg_att_acc - red$leg_att_acc,
     diff_KD                     =blue$avg_KD - red$avg_KD,               
     diff_PASS                   =blue$avg_PASS - red$avg_PASS,
     diff_REV                    =blue$avg_REV - red$avg_REV,
@@ -307,11 +481,12 @@ prediction <- function(fighter_name_1, fighter_name_2) {
   top_labels <- c('Fighter 1 Win', 'Fighter 2 Win')
   
   chart <- plot_ly(
-    data, x = ~x1, y = ~y, type = 'bar', orientation = 'h',
+    data, x = ~x1, y = ~y, type = 'bar', orientation = 'h', height = 300, 
     marker = list(color = 'rgba(239, 83, 80, 0.8)',
                   line = list(color = 'rgba(0, 0, 0, 5)', width = 1))
   ) %>%
-    add_trace(x = ~x2, marker = list(color = 'rgba(66, 165, 245, 0.8)')) %>%
+    add_trace(x = ~x2, marker = list(color = 'rgba(66, 165, 245, 0.8)',
+                                     line = list(color = 'rgba(0, 0, 0, 5)', width = 1))) %>%
     config(displayModeBar = F) %>%
     layout(
       dragmode = FALSE,
@@ -328,7 +503,6 @@ prediction <- function(fighter_name_1, fighter_name_2) {
                    showticklabels = FALSE,
                    zeroline = FALSE),
       barmode = 'stack',
-      height = 300, 
       paper_bgcolor = 'rgba(248, 248, 255, 0)', plot_bgcolor = 'rgba(248, 248, 255, 0)',
       margin = list(l = 0, r = 0, t = 140, b = 80, pad = 0),
       showlegend = FALSE) %>%
@@ -382,24 +556,48 @@ shinyServer(
       colnames = FALSE
     )
     
-    output$fighter_picture_1 <- renderImage({
-      list(src = file.path(getwd(), sprintf("www/%s", get_profile_pic(1, input$fighter_1))))
-    }, deleteFile = FALSE)
+    output$fighter_picture_1 <- renderText({c('<img src="', get_profile_picture(input$fighter_1),'">')})
+    output$fighter_picture_2 <- renderText({c('<img src="', get_profile_picture(input$fighter_2),'">')})
     
-    output$fighter_picture_2 <- renderImage({
-      list(src = file.path(getwd(), sprintf("www/%s", get_profile_pic(2, input$fighter_2))))
-    }, deleteFile = FALSE)
+    output$career_summary_1 <- renderPlotly(
+      get_career_summary(input$fighter_1)
+    )
     
-    output$general_stat <- renderPlotly(
+    output$career_summary_2 <- renderPlotly(
+      get_career_summary(input$fighter_2)
+    )
+    
+    output$streak_detail_1 <- renderTable(
+      get_streak_detail(input$fighter_1),
+      width="97%",
+      rownames = TRUE, 
+      colnames = FALSE
+    )
+    
+    output$streak_detail_2 <- renderTable(
+      get_streak_detail(input$fighter_2),
+      width="97%",
+      rownames = TRUE, 
+      colnames = FALSE
+    )
+    
+    output$winning_stat <- renderPlotly(
       get_general_stat(input$fighter_1, input$fighter_2)
     )
     
-    output$general_figure_1 <- renderPlotly(
-      get_figure(input$fighter_1)
+    output$attack_area_1 <- renderPlotly(
+      get_attack_area(1, input$fighter_1)
     )
     
-    output$general_figure_2 <- renderPlotly(
-      get_figure(input$fighter_2)
+    output$attack_area_2 <- renderPlotly(
+      get_attack_area(2, input$fighter_2)
+    )
+    
+    output$attack_summary <- renderTable(
+      get_attack_summary(input$fighter_1, input$fighter_2),
+      width="97%",
+      rownames = TRUE, 
+      colnames = TRUE
     )
     
     output$in_game_stat <- renderPlotly({
@@ -408,52 +606,52 @@ shinyServer(
         fill = 'toself',
         mode = 'lines'
       ) %>%
-      config(
-        displaylogo = F
-      ) %>%
-      add_trace(
-        r = get_in_game_stat(1, input$fighter_1),
-        fillcolor = "rgba(255, 15, 0, 0.5)",
-        line = list(color = 'rgba(230, 13, 0, 0.75)', width = 1),
-        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
-        name = ifelse(is.na(input$fighter_1) || trimws(input$fighter_1) == "", "Fighter 1", input$fighter_1)
-      ) %>%
-      add_trace(
-        r = get_in_game_stat(2, input$fighter_2),
-        fillcolor = "rgba(0, 15, 255, 0.5)",
-        line = list(color = 'rgba(13, 0, 230, 0.75)', width = 1),
-        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
-        name = ifelse(is.na(input$fighter_2) || trimws(input$fighter_2) == "", "Fighter 2", input$fighter_2)
-      ) %>%
-      config(displayModeBar = FALSE) %>%
-      layout(
-        plot_bgcolor = "rgba(0, 0, 0, 1)",
-        paper_bgcolor = "rgba(255, 255, 255, 0)",
-        dragmode = FALSE,
-        polar = list(
-          angularaxis = list(
-            visible = T,
-            tickwidth = 1,
-            linewidth = 1,
-            rotation=240,
-            direction='clockwise',
-            layer = 'below traces',
-            tickfont = list(color = "white")
+        config(
+          displaylogo = F
+        ) %>%
+        add_trace(
+          r = get_in_game_stat(1, input$fighter_1),
+          fillcolor = "rgba(255, 15, 0, 0.5)",
+          line = list(color = 'rgba(230, 13, 0, 0.75)', width = 1),
+          theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
+          name = ifelse(is.na(input$fighter_1) || trimws(input$fighter_1) == "", "Fighter 1", input$fighter_1)
+        ) %>%
+        add_trace(
+          r = get_in_game_stat(2, input$fighter_2),
+          fillcolor = "rgba(0, 15, 255, 0.5)",
+          line = list(color = 'rgba(13, 0, 230, 0.75)', width = 1),
+          theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
+          name = ifelse(is.na(input$fighter_2) || trimws(input$fighter_2) == "", "Fighter 2", input$fighter_2)
+        ) %>%
+        config(displayModeBar = FALSE) %>%
+        layout(
+          plot_bgcolor = "rgba(0, 0, 0, 1)",
+          paper_bgcolor = "rgba(255, 255, 255, 0)",
+          dragmode = FALSE,
+          polar = list(
+            angularaxis = list(
+              visible = T,
+              tickwidth = 1,
+              linewidth = 1,
+              rotation=240,
+              direction='clockwise',
+              layer = 'below traces',
+              tickfont = list(color = "white")
+            ),
+            radialaxis = list(
+              visible = T,
+              side="clockwise",
+              range = c(0,1)
+            )
           ),
-          radialaxis = list(
-            visible = T,
-            side="clockwise",
-            range = c(0,1)
-          )
-        ),
-        legend = list(
-          x = 0.5,
-          orientation = 'h',
-          xanchor = "center",
-          font = list(color = "white")
-        ),
-        margin = list(l = 50, r = 50, b = 8, t = 8, pad = 4)
-      )
+          legend = list(
+            x = 0.5,
+            orientation = 'h',
+            xanchor = "center",
+            font = list(color = "white")
+          ),
+          margin = list(l = 50, r = 50, b = 8, t = 8, pad = 4)
+        )
     })
     
     output$prediction_results <- renderPlotly(
