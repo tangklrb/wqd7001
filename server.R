@@ -248,7 +248,7 @@ plot_figure <- function(data) {
                     xref = "paper",
                     yref = "y",
                     font = list(family = 'Arial', size = 10,
-                                color = 'rgb(0, 0, 0)'),
+                                color = 'rgba(255, 255, 255, 0.75'),
                     showarrow = FALSE) %>%
     layout(
       xaxis = list(
@@ -279,8 +279,8 @@ plot_figure <- function(data) {
           layer = "below"
         )
       ),
-      margin = list(l = 0, t = 0, r = 0, b = 0, pad = 0),
-      paper_bgcolor = 'rgba(248, 248, 248, 0.5)', plot_bgcolor = 'rgba(248, 248, 248, 0.5)'
+      paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
+      margin = list(l = 0, t = 0, r = 0, b = 0, pad = 0)
     )
   
   return(p)
@@ -289,11 +289,11 @@ plot_figure <- function(data) {
 get_attack_area <- function(fighter_seq, fighter_name) {
   
   x <- c(1.5, 1.5, 1.5, 1.5, 1.6, 1.6)
-  y <- c(2.7, 2.7, 2, 2, 1.2, 1.2)
+  y <- c(2.7, 2.7, 2, 2, 1.1, 1.1)
   attack_note_x <- ifelse(fighter_seq==1, c(1, 1, 1), c(0, 0, 0))
   attack_note_y <- c(2.7, 2, 1.2)
-  attack_color <- c('rgb(251,141,160)', 'rgb(251,69,112)', 'rgb(251,141,160)', 'rgb(251,69,112)', 'rgb(251,141,160)', 'rgb(251,69,112)')
-  attack_opacity <- c(0.35, 0.5, 0.35, 0.5, 0.35, 0.5)
+  attack_color <- c('rgb(240, 96, 96)', 'rgb(240, 96, 96)', 'rgb(240, 96, 96)', 'rgb(240, 96, 96)', 'rgb(240, 96, 96)', 'rgb(240, 96, 96)')
+  attack_opacity <- c(0.25, 0.5, 0.25, 0.5, 0.25, 0.5)
   
   if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
     attack_note = c("", "", "", "", "", "")
@@ -398,27 +398,79 @@ get_attack_summary <- function(fighter_name_1, fighter_name_2) {
   return(fighter_general_stat)
 }
 
-get_in_game_stat <- function(fighter_seq, fighter_name) {
+get_in_game_stat <- function(fighter_name_1, fighter_name_2) {
   
-  if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
-    return(c(0, 0, 0, 0, 0, 0, 0))
+  if(is.na(fighter_name_1) || trimws(fighter_name_1) == "" || is.na(fighter_name_2) || trimws(fighter_name_2) == "" ) {
+    return(plot_failure("Please Select Fighter 1 and Fighter 2"))
+  } else if (fighter_name_1 == fighter_name_2) {
+    return(plot_failure("Please Select a different fighter"))
   }
   
   # fighter 1: [def] distance, close, [att], close, distance, ground, [def] ground
   # fighter 2: [att] distance, close, [def], close, distance, ground, [att] ground
-  if(fighter_seq == 1) {
-    fighter_in_game_stat <- fighters %>% 
-      filter(fighter==fighter_name) %>% 
-      select(ground_def, distance_def, close_def, close_att, distance_att, ground_att) %>%
-      mutate(gap_closure = ground_def) %>% t %>% as.vector
-  } else if(fighter_seq == 2) {
-    fighter_in_game_stat <- fighters %>% 
-      filter(fighter==fighter_name) %>% 
-      select(ground_att, distance_att, close_att, close_def, distance_def, ground_def) %>%
-      mutate(gap_closure = ground_att) %>% t %>% as.vector
-  }
   
-  return(fighter_in_game_stat)
+  fighter_in_game_stat_1 <- fighters %>% 
+    filter(fighter==fighter_name_1) %>% 
+    select(ground_def, distance_def, close_def, close_att, distance_att, ground_att) %>%
+    mutate(gap_closure = ground_def) %>% t %>% as.vector
+  
+  fighter_in_game_stat_2 <- fighters %>% 
+    filter(fighter==fighter_name_2) %>% 
+    select(ground_att, distance_att, close_att, close_def, distance_def, ground_def) %>%
+    mutate(gap_closure = ground_att) %>% t %>% as.vector
+
+  return(
+    plot_ly(
+      type = 'scatterpolargl',
+      fill = 'toself',
+      mode = 'lines'
+    ) %>%
+      config(
+        displaylogo = F
+      ) %>%
+      add_trace(
+        r = fighter_in_game_stat_1,
+        fillcolor = "rgba(255, 15, 0, 0.5)",
+        line = list(color = 'rgba(230, 13, 0, 0.75)', width = 1),
+        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
+        name = fighter_name_1
+      ) %>%
+      add_trace(
+        r = fighter_in_game_stat_2,
+        fillcolor = "rgba(0, 15, 255, 0.5)",
+        line = list(color = 'rgba(13, 0, 230, 0.75)', width = 1),
+        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
+        name = fighter_name_2
+      ) %>%
+      config(displayModeBar = FALSE) %>%
+      layout(
+        dragmode = FALSE,
+        polar = list(
+          angularaxis = list(
+            visible = T,
+            tickwidth = 1,
+            linewidth = 1,
+            rotation=240,
+            direction='clockwise',
+            layer = 'below traces',
+            tickfont = list(color = "white")
+          ),
+          radialaxis = list(
+            visible = T,
+            side="clockwise",
+            range = c(0,1)
+          )
+        ),
+        legend = list(
+          x = 0.5,
+          orientation = 'h',
+          xanchor = "center",
+          font = list(color = "white")
+        ),
+        paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
+        margin = list(l = 50, r = 50, b = 8, t = 8, pad = 4)
+      )
+  )
 }
 
 prediction <- function(fighter_name_1, fighter_name_2) {
@@ -601,57 +653,7 @@ shinyServer(
     )
     
     output$in_game_stat <- renderPlotly({
-      plot_ly(
-        type = 'scatterpolargl',
-        fill = 'toself',
-        mode = 'lines'
-      ) %>%
-        config(
-          displaylogo = F
-        ) %>%
-        add_trace(
-          r = get_in_game_stat(1, input$fighter_1),
-          fillcolor = "rgba(255, 15, 0, 0.5)",
-          line = list(color = 'rgba(230, 13, 0, 0.75)', width = 1),
-          theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
-          name = ifelse(is.na(input$fighter_1) || trimws(input$fighter_1) == "", "Fighter 1", input$fighter_1)
-        ) %>%
-        add_trace(
-          r = get_in_game_stat(2, input$fighter_2),
-          fillcolor = "rgba(0, 15, 255, 0.5)",
-          line = list(color = 'rgba(13, 0, 230, 0.75)', width = 1),
-          theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
-          name = ifelse(is.na(input$fighter_2) || trimws(input$fighter_2) == "", "Fighter 2", input$fighter_2)
-        ) %>%
-        config(displayModeBar = FALSE) %>%
-        layout(
-          plot_bgcolor = "rgba(0, 0, 0, 1)",
-          paper_bgcolor = "rgba(255, 255, 255, 0)",
-          dragmode = FALSE,
-          polar = list(
-            angularaxis = list(
-              visible = T,
-              tickwidth = 1,
-              linewidth = 1,
-              rotation=240,
-              direction='clockwise',
-              layer = 'below traces',
-              tickfont = list(color = "white")
-            ),
-            radialaxis = list(
-              visible = T,
-              side="clockwise",
-              range = c(0,1)
-            )
-          ),
-          legend = list(
-            x = 0.5,
-            orientation = 'h',
-            xanchor = "center",
-            font = list(color = "white")
-          ),
-          margin = list(l = 50, r = 50, b = 8, t = 8, pad = 4)
-        )
+      get_in_game_stat(input$fighter_1, input$fighter_2)
     })
     
     output$prediction_results <- renderPlotly(
