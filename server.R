@@ -70,8 +70,8 @@ get_profile_picture <- function(fighter_name) {
   }
 }
 
-plot_failure <- function(message) {
-  return(plotly_empty(height = 250) %>% 
+plot_failure <- function(message, plot_height = 250) {
+  return(plotly_empty(height = plot_height) %>% 
            config(displayModeBar = FALSE) %>%
            layout(
              paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
@@ -94,7 +94,7 @@ plot_failure <- function(message) {
 get_career_summary <- function(fighter_name) {
   
   if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
-    return(plot_failure("Fighter not selected"))
+    return(plot_failure("Fighter not selected", 220))
   }
   
   career_summary <- fighters %>% 
@@ -110,7 +110,7 @@ get_career_summary <- function(fighter_name) {
   
   colors <- c('rgb(131,208,112)', 'rgb(248,207,29)', 'rgb(227,99,66)')
   
-  return(plot_ly(career_summary, labels = ~rowname, values = ~count, type = 'pie', height = 250,
+  return(plot_ly(career_summary, labels = ~rowname, values = ~count, type = 'pie', height = 220,
                  textposition = 'inside', textinfo = 'label+percent', insidetextfont = list(color = '#FFFFFF'), 
                  marker = list(colors = colors,
                                line = list(color = '#FFFFFF', width = 1)),
@@ -145,12 +145,12 @@ get_streak_detail <- function(fighter_name) {
   return(streak_detail)
 }
 
-get_general_stat <- function(fighter_name_1, fighter_name_2) {
+get_winning_stat <- function(fighter_name_1, fighter_name_2) {
   
   if(is.na(fighter_name_1) || trimws(fighter_name_1) == "" || is.na(fighter_name_2) || trimws(fighter_name_2) == "" ) {
-    return(plot_failure("Please Select Fighter 1 and Fighter 2"))
+    return(plot_failure("Please Select Fighter 1 and Fighter 2", 125))
   } else if (fighter_name_1 == fighter_name_2) {
-    return(plot_failure("Please Select a different fighter"))
+    return(plot_failure("Please Select a different fighter", 125))
   }
   
   fighter_winning_stat_1 <- fighters %>%
@@ -177,7 +177,7 @@ get_general_stat <- function(fighter_name_1, fighter_name_2) {
   data <- data.frame(winning_type, fighter_winning_stat_1, fighter_winning_stat_2)
   
   return(
-    plot_ly(data, x = ~fighter_winning_stat_2, y = ~winning_type, height = 250,
+    plot_ly(data, x = ~fighter_winning_stat_2, y = ~winning_type, height = 125,
             type = 'bar', orientation = 'h', name = 'Fighter 2',
             marker = list(color = 'rgba(66, 165, 245, 0.8)',
                           line = list(color = 'rgba(0, 0, 0, 5)', width = 1))) %>%
@@ -238,7 +238,7 @@ plot_figure <- function(data) {
   txt <- RCurl::base64Encode(readBin(image_file, "raw", file.info(image_file)[1, "size"]), "txt")
   
   p <- plot_ly(
-    data, x = ~x, y = ~y, type = 'scatter', mode = 'markers', width = 150, height = 225, hoverinfo = "none", 
+    data, x = ~x, y = ~y, type = 'scatter', mode = 'markers', width = 150, height = 200, hoverinfo = "none", 
     marker = list(size = ~attack_count, opacity = ~attack_opacity, color = ~attack_color, line = list(color = 'rgba(225, 225, 225, 0)', width = 0)) 
   ) %>%
     config(displayModeBar = F) %>%
@@ -247,7 +247,7 @@ plot_figure <- function(data) {
                     text = ~attack_note,
                     xref = "paper",
                     yref = "y",
-                    font = list(family = 'Arial', size = 10,
+                    font = list(family = 'Arial', size = 11,
                                 color = 'rgba(255, 255, 255, 0.75'),
                     showarrow = FALSE) %>%
     layout(
@@ -280,7 +280,7 @@ plot_figure <- function(data) {
         )
       ),
       paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
-      margin = list(l = 0, t = 0, r = 0, b = 0, pad = 0)
+      margin = list(l = 0, t = 0, r = 0, b = 0, pad = 10)
     )
   
   return(p)
@@ -293,7 +293,7 @@ get_attack_area <- function(fighter_seq, fighter_name) {
   attack_note_x <- ifelse(fighter_seq==1, c(1, 1, 1), c(0, 0, 0))
   attack_note_y <- c(2.7, 2, 1.2)
   attack_color <- c('rgb(240, 96, 96)', 'rgb(240, 96, 96)', 'rgb(240, 96, 96)', 'rgb(240, 96, 96)', 'rgb(240, 96, 96)', 'rgb(240, 96, 96)')
-  attack_opacity <- c(0.25, 0.5, 0.25, 0.5, 0.25, 0.5)
+  attack_opacity <- c(0.3, 0.6, 0.3, 0.6, 0.3, 0.6)
   
   if(is.na(fighter_name) || trimws(fighter_name) == "" ) {
     attack_note = c("", "", "", "", "", "")
@@ -401,9 +401,9 @@ get_attack_summary <- function(fighter_name_1, fighter_name_2) {
 get_in_game_stat <- function(fighter_name_1, fighter_name_2) {
   
   if(is.na(fighter_name_1) || trimws(fighter_name_1) == "" || is.na(fighter_name_2) || trimws(fighter_name_2) == "" ) {
-    return(plot_failure("Please Select Fighter 1 and Fighter 2"))
+    return(plot_failure("Please Select Fighter 1 and Fighter 2", 360))
   } else if (fighter_name_1 == fighter_name_2) {
-    return(plot_failure("Please Select a different fighter"))
+    return(plot_failure("Please Select a different fighter", 360))
   }
   
   # fighter 1: [def] distance, close, [att], close, distance, ground, [def] ground
@@ -423,7 +423,8 @@ get_in_game_stat <- function(fighter_name_1, fighter_name_2) {
     plot_ly(
       type = 'scatterpolargl',
       fill = 'toself',
-      mode = 'lines'
+      mode = 'lines', 
+      height = 360
     ) %>%
       config(
         displaylogo = F
@@ -468,7 +469,7 @@ get_in_game_stat <- function(fighter_name_1, fighter_name_2) {
           font = list(color = "white")
         ),
         paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
-        margin = list(l = 50, r = 50, b = 8, t = 8, pad = 4)
+        margin = list(l = 30, r = 30, b = 30, t = 30, pad = 4)
       )
   )
 }
@@ -476,9 +477,9 @@ get_in_game_stat <- function(fighter_name_1, fighter_name_2) {
 prediction <- function(fighter_name_1, fighter_name_2) {
   
   if(is.na(fighter_name_1) || trimws(fighter_name_1) == "" || is.na(fighter_name_2) || trimws(fighter_name_2) == "" ) {
-    return(plot_failure("Please Select Fighter 1 and Fighter 2"))
+    return(plot_failure("Please Select Fighter 1 and Fighter 2", 360))
   } else if (fighter_name_1 == fighter_name_2) {
-    return(plot_failure("Please Select a different fighter"))
+    return(plot_failure("Please Select a different fighter", 360))
   }
   
   #Load Model
@@ -533,7 +534,7 @@ prediction <- function(fighter_name_1, fighter_name_2) {
   top_labels <- c('Fighter 1 Win', 'Fighter 2 Win')
   
   chart <- plot_ly(
-    data, x = ~x1, y = ~y, type = 'bar', orientation = 'h', height = 300, 
+    data, x = ~x1, y = ~y, type = 'bar', orientation = 'h', height = 360, 
     marker = list(color = 'rgba(239, 83, 80, 0.8)',
                   line = list(color = 'rgba(0, 0, 0, 5)', width = 1))
   ) %>%
@@ -555,8 +556,8 @@ prediction <- function(fighter_name_1, fighter_name_2) {
                    showticklabels = FALSE,
                    zeroline = FALSE),
       barmode = 'stack',
-      paper_bgcolor = 'rgba(248, 248, 255, 0)', plot_bgcolor = 'rgba(248, 248, 255, 0)',
-      margin = list(l = 0, r = 0, t = 140, b = 80, pad = 0),
+      paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
+      margin = list(l = 0, r = 0, t = 80, b = 80, pad = 0),
       showlegend = FALSE) %>%
     # labeling the y-axis
     add_annotations(xref = 'paper', yref = 'y', x = 0.14, y = y,
@@ -581,9 +582,9 @@ prediction <- function(fighter_name_1, fighter_name_2) {
     # labeling the first Likert scale (on the top)
     add_annotations(xref = 'x', yref = 'paper',
                     x = label_pos,
-                    y = 1.15,
+                    y = 1.12,
                     text = top_labels,
-                    font = list(family = 'Arial', size = 12,
+                    font = list(family = 'Arial', size = 14,
                                 color = 'rgb(224, 224, 224)'),
                     showarrow = FALSE)
   
@@ -634,7 +635,7 @@ shinyServer(
     )
     
     output$winning_stat <- renderPlotly(
-      get_general_stat(input$fighter_1, input$fighter_2)
+      get_winning_stat(input$fighter_1, input$fighter_2)
     )
     
     output$attack_area_1 <- renderPlotly(

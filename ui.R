@@ -144,7 +144,7 @@ shinyUI(
                             fluidRow(
                               column(12,
                                      align = "center",
-                                     plotlyOutput("in_game_stat", width = "95%", height = "95%")
+                                     plotlyOutput("in_game_stat", width = "95%")
                               )
                             )
                      )
@@ -157,7 +157,7 @@ shinyUI(
                             class="container",
                             align = "center",
                             h5("Winner Prediction"),
-                            plotlyOutput("prediction_results")
+                            plotlyOutput("prediction_results", width = "95%")
                      )
                    )
                  )

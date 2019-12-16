@@ -1,0 +1,13 @@
+name: wqd7001
+title: wqd7001
+username:
+account: tangklrb
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1601549
+bundleId: 2669592
+url: https://tangklrb.shinyapps.io/wqd7001/
+when: 1576432495.40236
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|explore.R|log.txt|data/.~lock.fighter_data.csv#|data/.~lock.preprocessed_data.csv#|data/.~lock.raw_total_fight_data.csv#|data/fighter_data_old.csv|www/.Rhistory|Backup
