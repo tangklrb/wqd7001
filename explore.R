@@ -265,3 +265,16 @@ profile_pic <- fighters %>%
   filter(fighter=="Mitch Gagnon") %>% 
   select(url) %>% t
 
+
+
+library(rstudioapi)
+setwd(dirname(getActiveDocumentContext()$path))
+
+fighters <- read.csv("data/fighter_data_v2.csv", header = T)
+fighters_old <- read.csv("data/fighter_data_v1.csv", header = T)
+
+fighters_new <- merge(fighters, fighters_old %>% select(fighter, url), by = "fighter")
+fighters_new <- fighters_new %>% select(-url.x) %>% rename("url" = url.y)
+
+write.csv(fighters_new, "data/fighter_data.csv", row.names=FALSE)
+
