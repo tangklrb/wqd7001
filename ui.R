@@ -76,12 +76,12 @@ shinyUI(
                tabsetPanel(
                  type="tab",
                  tabPanel(
-                   "General Stat",
+                   "Career",
                    fixedRow(
                      column(12, 
                             class="container",
                             align = "center",
-                            h5("General Statistic"),
+                            h5("Career Statistic"),
                             fluidRow(
                               column(12,
                                      class="col-xs-12 col-md-12 col-lg-6 col-xl-6 col-lg-push-3 col-xl-push-3",
@@ -108,7 +108,7 @@ shinyUI(
                    )
                  ),
                  tabPanel(
-                   "In Game Stat",
+                   "In Game",
                    fixedRow(
                      column(12, 
                             class="container",
@@ -136,11 +136,11 @@ shinyUI(
                    )
                  ),
                  tabPanel(
-                   "Def/Att Stat",
+                   "Def vs Att",
                    fixedRow(
                      column(12, 
                             class="container",
-                            h5("Defence & Attack Rating"),
+                            h5("Defence & Attack Rate"),
                             fluidRow(
                               column(12,
                                      align = "center",

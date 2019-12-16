@@ -433,14 +433,14 @@ get_in_game_stat <- function(fighter_name_1, fighter_name_2) {
         r = fighter_in_game_stat_1,
         fillcolor = "rgba(255, 15, 0, 0.5)",
         line = list(color = 'rgba(230, 13, 0, 0.75)', width = 1),
-        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
+        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nA Att vs B Def', 'Distance\nA Att\nvs\nB Def','Ground\nA Att vs B Def', 'Ground\nA Def vs B Att'),
         name = fighter_name_1
       ) %>%
       add_trace(
         r = fighter_in_game_stat_2,
         fillcolor = "rgba(0, 15, 255, 0.5)",
         line = list(color = 'rgba(13, 0, 230, 0.75)', width = 1),
-        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nB Def vs A Att', 'Distance\nB Def\nvs\nA Att','Ground\nB Def vs A Att', 'Ground\nA Def vs B Att'),
+        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nA Att vs B Def', 'Distance\nA Att\nvs\nB Def','Ground\nA Att vs B Def', 'Ground\nA Def vs B Att'),
         name = fighter_name_2
       ) %>%
       config(displayModeBar = FALSE) %>%
