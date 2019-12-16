@@ -1,11 +1,13 @@
 library(shiny)
 library(dplyr)
 library(plotly)
+library(tibble)
 library(stringr)
 library(caret)
 library(RCurl)
 
-#setwd('/home/kitlim/wqd7001/ShinyTest/GroupProject/')
+# library(rstudioapi)
+# setwd(dirname(getActiveDocumentContext()$path))
 fighters <- read.csv("data/fighter_data.csv", header = T)
 
 write_log <- function(content) {
@@ -71,7 +73,7 @@ get_profile_picture <- function(fighter_name) {
 }
 
 plot_failure <- function(message, plot_height = 250) {
-  return(plotly_empty(height = plot_height) %>% 
+  return(plotly_empty(type = "scatter", mode = 'markers', height = plot_height) %>% 
            config(displayModeBar = FALSE) %>%
            layout(
              paper_bgcolor = 'rgba(0, 0, 0, 0.25)', plot_bgcolor = 'rgba(0, 0, 0, 0.25)',
@@ -102,8 +104,8 @@ get_career_summary <- function(fighter_name) {
     select(wins, draw, losses) %>%
     rename(
       "Wins" = wins, "Draw" = draw, "Losses" = losses
-    ) %>% t %>% as.data.frame %>% 
-    add_rownames() %>% 
+    ) %>% t %>% as.data.frame %>%
+    rownames_to_column(var = "rowname") %>% 
     rename (
       "count" = V1
     )
@@ -418,7 +420,7 @@ get_in_game_stat <- function(fighter_name_1, fighter_name_2) {
     filter(fighter==fighter_name_2) %>% 
     select(ground_att, distance_att, close_att, close_def, distance_def, ground_def) %>%
     mutate(gap_closure = ground_att) %>% t %>% as.vector
-
+  
   return(
     plot_ly(
       type = 'scatterpolargl',
@@ -433,14 +435,14 @@ get_in_game_stat <- function(fighter_name_1, fighter_name_2) {
         r = fighter_in_game_stat_1,
         fillcolor = "rgba(255, 15, 0, 0.5)",
         line = list(color = 'rgba(230, 13, 0, 0.75)', width = 1),
-        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nA Att vs B Def', 'Distance\nA Att\nvs\nB Def','Ground\nA Att vs B Def', 'Ground\nA Def vs B Att'),
+        theta = c('Ground\nF.1 Def vs F.2 Att', 'Distance\nF.1 Def\nvs\nF.2 Att', 'Close\nF.1 Def vs F.2 Att', 'Close\nF.1 Att vs F.2 Def', 'Distance\nF.1 Att\nvs\nF.2 Def','Ground\nF.1 Att vs F.2 Def', 'Ground\nF.1 Def vs F.2 Att'),
         name = fighter_name_1
       ) %>%
       add_trace(
         r = fighter_in_game_stat_2,
         fillcolor = "rgba(0, 15, 255, 0.5)",
         line = list(color = 'rgba(13, 0, 230, 0.75)', width = 1),
-        theta = c('Ground\nA Def vs B Att', 'Distance\nA Def\nvs\nB Att', 'Close\nA Def vs B Att', 'Close\nA Att vs B Def', 'Distance\nA Att\nvs\nB Def','Ground\nA Att vs B Def', 'Ground\nA Def vs B Att'),
+        theta = c('Ground\nF.1 Def vs F.2 Att', 'Distance\nF.1 Def\nvs\nF.2 Att', 'Close\nF.1 Def vs F.2 Att', 'Close\nF.1 Att vs F.2 Def', 'Distance\nF.1 Att\nvs\nF.2 Def','Ground\nF.1 Att vs F.2 Def', 'Ground\nF.1 Def vs F.2 Att'),
         name = fighter_name_2
       ) %>%
       config(displayModeBar = FALSE) %>%

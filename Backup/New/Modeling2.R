@@ -151,4 +151,4 @@ results
 predict(fit.lda,test_set[2,],type="prob")
 save(fit.lda, file="Model2.RData")
 model_compare <- summary(results)
-save(model_compare,file="model_compare.RData")
+save(model_compare,file="Model_Compare.RData")

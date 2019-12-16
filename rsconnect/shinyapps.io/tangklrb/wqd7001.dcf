@@ -5,9 +5,9 @@ account: tangklrb
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1601549
-bundleId: 2670735
+bundleId: 2670853
 url: https://tangklrb.shinyapps.io/wqd7001/
-when: 1576469011.69483
+when: 1576472616.72245
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: .RData|explore.R|log.txt|www/.Rhistory|Backup
+ignoredFiles: .RData|explore.R|backup

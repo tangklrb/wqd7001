@@ -3,7 +3,7 @@ library(dplyr)
 data_fighter <- read.csv("fighter_data2.csv")
 #Load Model
 load("Model2.RData")
-load("model_compare.RData")
+load("Model_Compare.RData")
 #Red Corner
 red=data_fighter[1,]
 #Blue Corner

@@ -3,7 +3,8 @@ library(shinythemes)
 library(htmlwidgets)
 library(plotly)
 
-#setwd('/home/kitlim/wqd7001/ShinyTest/GroupProject/')
+# library(rstudioapi)
+# setwd(dirname(getActiveDocumentContext()$path))
 fighters = read.csv("data/fighter_data.csv", header = T)
 fighter_list <- fighters %>% arrange(desc(date)) %>% select(fighter) %>% mutate(value = fighter) %>% as.vector
 
@@ -167,4 +168,3 @@ shinyUI(
     )
   )
 )  
-  
